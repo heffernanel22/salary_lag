@@ -1,0 +1,438 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+
+
+
+
+#Load the salary data, revised with open refine and add a data column
+```{r}
+library(readr)
+UNC_salaries <- read_csv("~/Documents/all data journalism/UNC_System_Salaries-20Search-20and-20Report-202-csv.csv",col_types = cols(`Total salary` = col_number ())) %>% mutate(date_hired = mdy(`Hire date`))
+
+names(UNC_salaries) <- c("campus","name","department","position","title","null","total_salary","date_hired")
+
+  
+
+```
+
+#PART ONE: GRAPHING FOR A GENERAL SENSE, do this in tableau too. 
+
+#1. Graph the salaries of all associate professors v. the year they were hired. 
+```{r}
+UNC_associates <- UNC_salaries %>% filter(position == "ASSOCIATE PROFESSOR")
+
+#986 associate professors 
+
+ggplot(data = UNC_associates) + 
+  geom_smooth(mapping = aes(x = date_hired, y = total_salary )) 
+
+ggplot(data = UNC_associates) + 
+  geom_smooth(mapping = aes(x = date_hired, y = total_salary )) +
+  facet_wrap(~department)
+```
+
+#2. Graph the salaries of all assistant professors v. the year they were hired. 
+
+```{r}
+UNC_assistants <- UNC_salaries %>% filter(position == "ASSISTANT PROFESSOR")
+
+ggplot(data = UNC_assistants) + 
+  geom_smooth(mapping = aes(x = date_hired, y = total_salary )) 
+
+ggplot(data = UNC_associates) + 
+  geom_smooth(mapping = aes(x = date_hired, y = total_salary )) +
+  facet_wrap(~department)
+```
+
+#3. Graph the salaries of all tenured professors v. the year they were hired. 
+```{r}
+UNC_professors <- UNC_salaries %>% filter(position == "PROFESSOR")
+
+ggplot(data = UNC_professors) + 
+  geom_smooth(mapping = aes(x = date_hired, y = total_salary)) 
+
+ggplot(data = UNC_professors) + 
+  geom_smooth(mapping = aes(x = date_hired, y = total_salary)) +
+  facet_wrap(~department, nrow = 3)
+```
+
+#PART TWO: Calculating percent change in salary for employees hired in 2019 (or the most recent hire date in the decade) and 2010 (or the least hire date in the decade)
+
+#1.This calculation will show the percent change in salary from 2010 to 2019 for associate professors, assistant professors, and professors separately. This is not separated by department. 
+
+```{r}
+UNC_salaries <- UNC_salaries %>% mutate(year = year(date_hired))
+UNC_professors <- UNC_salaries %>% filter (position == "PROFESSOR" | position == "ASSISTANT PROFESSOR" | position == "ASSOCIATE PROFESSOR")
+
+UNC_professors%>% group_by(position,year) %>% summarise(average = mean(total_salary)) %>%
+pivot_wider(names_from = year,values_from = average) %>% mutate(percent_change = (`2019` - `2010`)/(`2010`))
+
+```
+
+#2. Create a new dataframe that show the percent change in salary for departments separately. 
+
+```{r}
+UNC_professors %>% group_by(department,year) %>% summarise(average = mean(total_salary)) %>%
+pivot_wider(names_from = year,values_from = average)%>% mutate(percent_change =(`2019` - `2010`)/(`2010`))
+  
+```
+#Note to self: Get around the N/As by using Tableau to determine what year(s) professors were hired. For example, no one may have been hired in 2010, but they may have been hired in 2011. Adjust!
+
+#3.This calculation will show percent change, split by position, but only in the business school.
+
+```{r}
+UNC_professors %>% filter(department == "BUSINESS") %>% group_by(position,year) %>% summarise(average = mean(total_salary)) %>%
+pivot_wider(names_from = year,values_from = average)%>% mutate(percent_change_assoc =(`2019` - `2010`)/(`2010`))%>% mutate(percent_change_assist =(`2019` - `2011`)/(`2011`)) %>% mutate(percent_change_tenure =(`2017` - `2010`)/(`2010`))
+```
+
+#4.This calculation will show percent change, split by position, but only in the dentistry school
+```{r}
+UNC_professors %>% filter(department == "DENTISTRY") %>% arrange(desc(year)) %>% group_by(position,year) %>% summarise(average = mean(total_salary)) %>%
+pivot_wider(names_from = year,values_from = average)%>% mutate(percent_change_assoc =(`2019` - `2010`)/(`2010`)) %>% mutate(percent_change_assist =(`2019` - `2012`)/(`2012`)) %>% mutate(percent_change_tenure =(`2018` - `2016`)/(`2016`))
+```
+
+#5. This calculation will show percent change, split by position, but only in the education school
+```{r}
+UNC_professors %>% filter(department == "EDUCATION") %>% arrange(desc(year)) %>% group_by(position,year) %>% summarise(average = mean(total_salary)) %>%
+pivot_wider(names_from = year,values_from = average)%>% mutate(percent_change_assist =(`2019` - `2010`)/(`2010`)) %>% mutate(percent_change_assoc =(`2018` - `2010`)/(`2010`)) %>% mutate(percent_change_tenure =(`2019` - `2011`)/(`2011`))
+```
+
+
+#6. This calculation will show percent change, split by position, but only in the government school
+```{r}
+UNC_professors %>% filter(department == "GOVERNMENT") %>% arrange(desc(year)) %>% group_by(position,year) %>% summarise(average = mean(total_salary)) %>%
+pivot_wider(names_from = year,values_from = average)%>% mutate(percent_change_assist =(`2013` - `2012`)/(`2012`))
+
+```
+
+
+#7. This calculation will show percent change, split by position, but only in the humanities departments
+```{r}
+UNC_professors %>% filter(department == "HUMANITIES") %>% arrange(desc(year)) %>% group_by(position,year) %>% summarise(average = mean(total_salary)) %>%
+pivot_wider(names_from = year,values_from = average)%>% mutate(percent_change =(`2019` - `2010`)/(`2010`)) %>%mutate(percent_change_assist =(`2019` - `2011`)/(`2011`))
+
+```
+
+#8. This calculation will show percent change, split by position, but only in the ILS school
+```{r}
+UNC_professors %>% filter(department == "ILS") %>% arrange(desc(year)) %>% group_by(position,year) %>% summarise(average = mean(total_salary)) %>%
+pivot_wider(names_from = year,values_from = average)%>% mutate(percent_change_assist =(`2018` - `2010`)/(`2010`)) %>% mutate(percent_change_assoc =(`2015` - `2011`)/(`2011`))
+```
+
+#9. This calculation will show percent change, split by position, but only in the law school
+```{r}
+UNC_professors %>% filter(department == "LAW") %>% arrange(desc(year)) %>% group_by(position,year) %>% summarise(average = mean(total_salary)) %>%
+pivot_wider(names_from = year,values_from = average) %>% mutate(percent_change_tenure =(`2019` - `2010`)/(`2010`)) %>% mutate(percent_change_assoc =(`2019` - `2011`)/(`2011`)) %>% mutate(percent_change_assist =(`2018` - `2016`)/(`2016`))
+
+```
+
+#10. This calculation will show percent change, split by position, but only in the medical school
+
+```{r}
+UNC_professors %>% filter(department == "MEDICINE") %>% arrange(desc(year)) %>% group_by(position,year) %>% summarise(average = mean(total_salary)) %>%
+pivot_wider(names_from = year,values_from = average) %>% mutate(percent_change =(`2019` - `2010`)/(`2010`)) 
+
+```
+
+#11. This calculation will show percent change, split by position, but only in the MEJO school
+```{r}
+UNC_professors %>% filter(department == "MEJO") %>% arrange(desc(year)) %>% group_by(position,year) %>% summarise(average = mean(total_salary)) %>%
+pivot_wider(names_from = year,values_from = average) %>% mutate(percent_change_assoc =(`2018` - `2010`)/(`2010`)) %>% mutate(percent_change_assist =(`2018` - `2012`)/(`2012`))
+  
+```
+
+#12. This calculation will show percent change, split by position, but only in the nursing school
+
+```{r}
+UNC_professors %>% filter(department == "NURSING") %>% arrange(desc(year)) %>% group_by(position,year) %>% summarise(average = mean(total_salary)) %>%
+pivot_wider(names_from = year,values_from = average) %>% mutate(percent_change_assoc_assist =(`2019` - `2010`)/(`2010`)) %>% mutate(percent_change_tenure =(`2019` - `2015`)/(`2015`))
+
+```
+
+#13. This calculation will show percent change, split by position, but only in the pharmacy  school
+
+```{r}
+UNC_professors %>% filter(department == "PHARMACY") %>% arrange(desc(year)) %>% group_by(position,year) %>% summarise(average = mean(total_salary)) %>%
+pivot_wider(names_from = year,values_from = average) %>% mutate(percent_change_assoc_assist =(`2019` - `2010`)/(`2010`)) %>% mutate(percent_change_tenure =(`2019` - `2011`)/(`2011`)) 
+```
+
+
+#14.This calculation will show percent change, split by position, but only in the public health  school
+
+```{r}
+UNC_professors %>% filter(department == "PUBLIC HEALTH") %>% arrange(desc(year)) %>% group_by(position,year) %>% summarise(average = mean(total_salary)) %>%
+pivot_wider(names_from = year,values_from = average) %>% mutate(percent_change =(`2019` - `2010`)/(`2010`))
+```
+
+#15. This calculation will show percent change, split by position, but only in the social work  school
+
+```{r}
+UNC_professors %>% filter(department == "SOCIAL WORK") %>% arrange(desc(year)) %>% group_by(position,year) %>% summarise(average = mean(total_salary)) %>%
+pivot_wider(names_from = year,values_from = average) %>% mutate(percent_change_assist =(`2019` - `2010`)/(`2010`)) %>% mutate(percent_change_assoc =(`2014` - `2010`)/(`2010`)) %>% mutate(percent_change_tenure =(`2015` - `2010`)/(`2010`))
+  
+```
+
+
+#16. This calculation will show percent change, split by position, but only in STEM departments
+
+```{r}
+UNC_professors %>% filter(department == "STEM") %>% arrange(desc(year)) %>% group_by(position,year) %>% summarise(average = mean(total_salary)) %>%
+pivot_wider(names_from = year,values_from = average) %>% mutate(percent_change =(`2019` - `2010`)/(`2010`))
+```
+
+
+#PART THREE: Decade Stuff.
+
+#1. Filter so that you've created a dataframe for professors belonging to each decade
+```{r}
+#Creating
+ UNC_professors_sixties <- UNC_professors %>% filter(year >= 1960, year <= 1969) %>% mutate(decade = "1960s") 
+
+UNC_professors_seventies <- UNC_professors %>% filter(year >= 1970, year <= 1979) %>% mutate(decade = "1970s") 
+
+UNC_professors_eighties <- UNC_professors %>% filter(year >= 1980, year <= 1989) %>% mutate(decade = "1980s") 
+
+UNC_professors_nineties <-UNC_professors %>% filter(year >= 1990, year <= 1999) %>% mutate(decade = "1990s") 
+
+UNC_professors_thousands <- UNC_professors %>% filter(year >= 2000, year <= 2009) %>% mutate(decade = "2000s")
+  
+UNC_professors_tens <-UNC_professors %>% filter(year >= 2010, year <= 2020) %>% mutate(decade = "2010s") 
+
+
+```
+
+
+#2. Join these into one dataframe
+
+```{r}
+UNC_professors_decades <- union_all(UNC_professors_sixties,UNC_professors_seventies)
+
+
+UNC_professors_decades <-union_all(UNC_professors_decades,UNC_professors_eighties)
+
+UNC_professors_decades <- union_all(UNC_professors_decades,UNC_professors_nineties)
+
+UNC_professors_decades <- union_all(UNC_professors_decades,UNC_professors_thousands)
+
+UNC_professors_decades <- union_all(UNC_professors_decades,UNC_professors_tens)
+```
+
+
+
+#3.Create a dataframe to analyze in Tableau
+```{r}
+write_csv(UNC_professors_decades,"UNC_professors_decades3.csv")
+```
+
+
+#Part Four: Creating Counts for Later Per-Capita Analysis
+
+#1. Found out how many professors were hired each year, split by position
+```{r}
+UNC_professors %>% filter(year >= 2010,year <=2020) %>% group_by(position,year) %>% summarise(total_salary = n()) %>% pivot_wider(names_from = year, values_from = total_salary)
+```
+
+#2. Found out how many professors were hired each year, split by department
+```{r}
+UNC_professors %>% filter(year >= 2010,year <=2020) %>% group_by(department,year) %>% summarise(total_salary = n()) %>% pivot_wider(names_from = department, values_from = total_salary)
+```
+
+#3. How many professors were hired by in BUSINESS by position & year. 
+```{r}
+
+UNC_professors %>% filter(year >= 2010,year <=2020) %>% filter(department == "BUSINESS") %>% group_by(position,year) %>% summarise(total_salary = n()) %>% pivot_wider(names_from = position, values_from = total_salary)
+```
+
+#4. How many professors were hired by in DENTISTRY by position & year. 
+```{r}
+UNC_professors %>% filter(year >= 2010,year <=2020) %>% filter(department == "DENTISTRY") %>% group_by(position,year) %>% summarise(total_salary = n()) %>% pivot_wider(names_from = position, values_from = total_salary)
+```
+
+#5. How many professors were hired by in EDUCATION by position & year.
+```{r}
+UNC_professors %>% filter(year >= 2010,year <=2020) %>% filter(department == "EDUCATION") %>% group_by(position,year) %>% summarise(total_salary = n()) %>% pivot_wider(names_from = position, values_from = total_salary)
+```
+
+
+#5. How many professors were hired by in GOVERNMENT by position & year.
+```{r}
+UNC_professors %>% filter(year >= 2010,year <=2020) %>% filter(department == "GOVERNMENT") %>% group_by(position,year) %>% summarise(total_salary = n()) %>% pivot_wider(names_from = position, values_from = total_salary)
+```
+
+#6.How many professors were hired by in HUMANITIES by position & year?
+
+```{r}
+UNC_professors %>% filter(year >= 2010,year <=2020) %>% filter(department == "HUMANITIES") %>% group_by(position,year) %>% summarise(total_salary = n()) %>% pivot_wider(names_from = position, values_from = total_salary)
+```
+
+
+
+#7.How many professors were hired by in ILS by position & year?
+
+```{r}
+UNC_professors %>% filter(year >= 2010,year <=2020) %>% filter(department == "ILS") %>% group_by(position,year) %>% summarise(total_salary = n()) %>% pivot_wider(names_from = position, values_from = total_salary)
+```
+
+#8. How many professors were hired in law by position and year?
+```{r}
+UNC_professors %>% filter(year >= 2010,year <=2020) %>% filter(department == "LAW") %>% group_by(position,year) %>% summarise(total_salary = n()) %>% pivot_wider(names_from = position, values_from = total_salary)
+```
+
+
+
+#9. How many professors hired in medicine by position and year?
+```{r}
+UNC_professors %>% filter(year >= 2010,year <=2020) %>% filter(department == "MEDICINE") %>% group_by(position,year) %>% summarise(total_salary = n()) %>% pivot_wider(names_from = position, values_from = total_salary)
+```
+
+#10. How many professors hired in nursing by year?
+```{r}
+UNC_professors %>% filter(year >= 2010,year <=2020) %>% filter(department == "NURSING") %>% group_by(position,year) %>% summarise(total_salary = n()) %>% pivot_wider(names_from = position, values_from = total_salary)
+```
+
+
+#11. How many professors hired in pharmacy by year and position
+```{r}
+UNC_professors %>% filter(year >= 2010,year <=2020) %>% filter(department == "PHARMACY") %>% group_by(position,year) %>% summarise(total_salary = n()) %>% pivot_wider(names_from = position, values_from = total_salary)
+```
+
+
+#12. How many professors hired in public health, by position and year?
+```{r}
+UNC_professors %>% filter(year >= 2010,year <=2020) %>% filter(department == "PUBLIC HEALTH") %>% group_by(position,year) %>% summarise(total_salary = n()) %>% pivot_wider(names_from = position, values_from = total_salary)
+```
+
+
+#13.How many professors hired in social work by position and year?
+```{r}
+UNC_professors %>% filter(year >= 2010,year <=2020) %>% filter(department == "SOCIAL WORK") %>% group_by(position,year) %>% summarise(total_salary = n()) %>% pivot_wider(names_from = position, values_from = total_salary)
+```
+
+
+#14. How many professors hired in STEM, by position and year?
+```{r}
+UNC_professors %>% filter(year >= 2010,year <=2020) %>% filter(department == "STEM") %>% group_by(position,year) %>% summarise(total_salary = n()) %>% pivot_wider(names_from = position, values_from = total_salary)
+```
+
+
+#15. How many professors hired per decade, by position?
+```{r}
+UNC_professors_decades %>%  group_by(position,decade) %>% summarise(total_salary = n()) %>% pivot_wider(names_from = decade, values_from = total_salary)
+```
+
+
+#15. How many professors hired per decade, by department?
+```{r}
+UNC_professors_decades %>%  group_by(department,decade) %>% summarise(total_salary = n()) %>% pivot_wider(names_from = decade, values_from = total_salary)
+```
+
+
+#PART FOUR: Counts by department and position for decades 
+
+#3. How many professors were hired by in BUSINESS by position & decade 
+```{r}
+
+UNC_professors_decades %>% filter(department == "BUSINESS") %>% group_by(position,decade) %>% summarise(total_salary = n()) %>% pivot_wider(names_from = position, values_from = total_salary)
+```
+
+#4. How many professors were hired by in DENTISTRY by position & year. 
+```{r}
+UNC_professors_decades %>% filter(department == "DENTISTRY") %>% group_by(position,decade) %>% summarise(total_salary = n()) %>% pivot_wider(names_from = position, values_from = total_salary)
+```
+
+#5. How many professors were hired by in EDUCATION by position & year.
+```{r}
+UNC_professors_decades %>% filter(department == "EDUCATION") %>% group_by(position,decade) %>% summarise(total_salary = n()) %>% pivot_wider(names_from = position, values_from = total_salary)
+```
+
+
+#5. How many professors were hired by in GOVERNMENT by position & year.
+```{r}
+UNC_professors_decades %>% filter(department == "GOVERNMENT") %>% group_by(position,decade) %>% summarise(total_salary = n()) %>% pivot_wider(names_from = position, values_from = total_salary)
+```
+
+#6.How many professors were hired by in HUMANITIES by position & year?
+
+```{r}
+UNC_professors_decades %>% filter(department == "HUMANITIES") %>% group_by(position,decade) %>% summarise(total_salary = n()) %>% pivot_wider(names_from = position, values_from = total_salary)
+```
+
+
+
+#7.How many professors were hired by in ILS by position & year?
+
+```{r}
+UNC_professors_decades %>% filter(department == "ILS") %>% group_by(position,decade) %>% summarise(total_salary = n()) %>% pivot_wider(names_from = position, values_from = total_salary)
+```
+
+#8. How many professors were hired in law by position and year?
+```{r}
+UNC_professors_decades %>% filter(department == "LAW") %>% group_by(position,decade) %>% summarise(total_salary = n()) %>% pivot_wider(names_from = position, values_from = total_salary)
+```
+
+
+
+#9. How many professors hired in medicine by position and year?
+```{r}
+UNC_professors_decades %>% filter(department == "MEDICINE") %>% group_by(position,decade) %>% summarise(total_salary = n()) %>% pivot_wider(names_from = position, values_from = total_salary)
+```
+
+#10. How many professors hired in nursing by year?
+```{r}
+UNC_professors_decades %>% filter(department == "NURSING") %>% group_by(position,decade) %>% summarise(total_salary = n()) %>% pivot_wider(names_from = position, values_from = total_salary)
+```
+
+
+#11. How many professors hired in pharmacy by year and position
+```{r}
+UNC_professors_decades %>% filter(department == "PHARMACY") %>% group_by(position,decade) %>% summarise(total_salary = n()) %>% pivot_wider(names_from = position, values_from = total_salary)
+```
+
+
+#12. How many professors hired in public health, by position and year?
+```{r}
+UNC_professors_decades %>% filter(department == "PUBLIC HEALTH") %>% group_by(position,decade) %>% summarise(total_salary = n()) %>% pivot_wider(names_from = position, values_from = total_salary)
+```
+
+
+#13.How many professors hired in social work by position and year?
+```{r}
+UNC_professors_decades %>% filter(department == "SOCIAL WORK") %>% group_by(position,decade) %>% summarise(total_salary = n()) %>% pivot_wider(names_from = position, values_from = total_salary)
+```
+
+
+#14. How many professors hired in STEM, by position and year?
+```{r}
+UNC_professors_decades %>% filter(department == "STEM") %>% group_by(position,decade) %>% summarise(total_salary = n()) %>% pivot_wider(names_from = position, values_from = total_salary)
+```
+
+#Count the number of professors hired in each category by decade 
+```{r}
+UNC_professors_decades %>% group_by(position,decade) %>% summarize(name =n()) %>% pivot_wider(names_from = decade,values_from = name)
+
+#1960s 0 percent are assistant professors
+
+#1970s, still 0
+
+#1980s 1/197
+
+#1990s 0.02325
+
+#200s 0.12439
+
+#2010s 62.576 percent 
+```
+
+#Checking how many professors there are. 
+```{r}
+str(UNC_professors_decades)
+```
+
+
+
